@@ -17,6 +17,7 @@ class SearchOrder2Test(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
+
         """Предустановка. Выполняется один раз перед всеми тестами."""
         cls.driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
 

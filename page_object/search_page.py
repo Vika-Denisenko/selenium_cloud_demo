@@ -33,6 +33,8 @@ def extract_decimal_price(text: str) -> Decimal:
     # В случае 1,202.00 нужно убрать запятую.
     first_price_without_punctuation = first_price.replace(",", "")
 
+
+
     return Decimal(first_price_without_punctuation)
 
 
