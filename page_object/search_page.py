@@ -18,6 +18,9 @@ def extract_decimal_price(text: str) -> Decimal:
     $122.00
     Ex Tax: $100.00"""
 
+
+
+
     # text == "$110.00 $122.00\nEx Tax: $90.00"
     split_by_lines: List[str] = text.split("\n")
     # split_by_lines == ["$110.00 $122.00", "Ex Tax: $90.00"]
