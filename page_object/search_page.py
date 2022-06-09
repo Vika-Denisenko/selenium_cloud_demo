@@ -61,6 +61,8 @@ class SearchPage:
         select = Select(self.get_sort_input())
         select.select_by_visible_text('Name (A - Z)')
 
+
+
     def sort_name_za(self):
         select = Select(self.get_sort_input())
         select.select_by_visible_text('Name (Z - A)')
