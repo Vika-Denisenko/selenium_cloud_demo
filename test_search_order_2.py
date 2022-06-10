@@ -27,6 +27,7 @@ class SearchOrder2Test(unittest.TestCase):
 
     def setUp(self) -> None:
         self.search_page = SearchOrder2Test.search_page
+
         self.driver = SearchOrder2Test.driver
 
     @classmethod
