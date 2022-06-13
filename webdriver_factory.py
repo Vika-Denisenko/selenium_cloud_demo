@@ -1,12 +1,52 @@
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.firefox.webdriver import WebDriver as FirefoxDriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.remote.webdriver import WebDriver
 
 import os
 
 from webdriver_manager.chrome import ChromeDriverManager
+from webdriver_manager.firefox import GeckoDriverManager
+
+
+WINDOW_SIZES = {
+    'DESKTOP_1024X768': {
+        'width': 1024,
+        'height': 768,
+        'deviceScaleFactor': 1,
+        'mobile': False
+    },
+    'DESKTOP_800X600': {
+        'width': 800,
+        'height': 600,
+        'deviceScaleFactor': 1,
+        'mobile': False
+    },
+    'DESKTOP_1280X720': {
+        'width': 1280,
+        'height': 720,
+        'deviceScaleFactor': 1,
+        'mobile': False
+    },
+    'IPHONE_12_MINI': {
+        'width': 360,
+        'height': 780,
+        'deviceScaleFactor': 3,
+        'mobile': True
+    },
+    'IPHONE_12_MINI_LANDSCAPE': {
+        'width': 780,
+        'height': 360,
+        'deviceScaleFactor': 3,
+        'mobile': True
+    },
+    '300X300': {
+        'width': 300,
+        'height': 300,
+        'deviceScaleFactor': 3,
+        'mobile': True
+    }
+}
 
 
 class WebDriverFactory:
@@ -26,15 +66,23 @@ class WebDriverFactory:
 
         driver_kind: str = WebDriverFactory.get_driver_kind()
         if driver_kind == "remote":
-            return WebDriverFactory.get_remote_driver()
+            driver = WebDriverFactory.get_remote_driver()
         elif driver_kind == "chrome":
-            return WebDriverFactory.get_chrome_driver()
+            driver = WebDriverFactory.get_chrome_driver()
         elif driver_kind == "firefox":
-            return WebDriverFactory.get_firefox_driver()
+            driver = WebDriverFactory.get_firefox_driver()
         elif driver_kind == "safari":
-            return WebDriverFactory.get_safari_driver()
+            driver = WebDriverFactory.get_safari_driver()
         else:
             raise NotImplemented('Getting driver for ' + driver_kind + ' is not implemented yet.')
+
+        resolution = WebDriverFactory.get_window_resolution()
+
+        driver.set_window_size(
+            width=resolution['width'],
+            height=resolution['height']
+        )
+        return driver
 
     @staticmethod
     def get_driver_kind() -> str:
@@ -43,13 +91,77 @@ class WebDriverFactory:
         return driver_kind
 
     @staticmethod
+    def get_window_resolution() -> dict:
+        window_config: str = os.environ['WINDOW_RESOLUTION'].upper()
+        return WINDOW_SIZES[window_config]
+
+    @staticmethod
     def get_firefox_driver():
-        driver = FirefoxDriver()
+        driver = webdriver.Firefox(service=Service(GeckoDriverManager().install()))
         return driver
 
     @staticmethod
     def get_chrome_driver():
-        return webdriver.Chrome(service=Service(ChromeDriverManager().install()))
+        options = Options()
+        # options.add_argument('--headless')
+        chrome_driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+        ret = chrome_driver.execute_cdp_cmd(
+            cmd="Emulation.setDeviceMetricsOverride",
+            cmd_args=WebDriverFactory.get_window_resolution()
+        )
+
+        # Установка геолокации
+        WebDriverFactory.set_geolocation(chrome_driver)
+
+        # Установка настроек сетевого соединения
+        chrome_driver.execute_cdp_cmd(
+            cmd="Network.emulateNetworkConditions",
+            cmd_args={
+                'offline': False,
+                'latency': 2000,
+                'downloadThroughput': 1000,
+                'uploadThroughput': 1000
+            }
+        )
+
+        # Установка часового пояса
+        chrome_driver.execute_cdp_cmd(
+            cmd="Emulation.setTimezoneOverride",
+            cmd_args={
+                'timezoneId': "Asia/Singapore"
+            }
+        )
+
+        # Установка локали
+        chrome_driver.execute_cdp_cmd(
+            cmd="Emulation.setLocaleOverride",
+            cmd_args={
+                'locale': "de_DE"
+            }
+        )
+
+        return chrome_driver
+
+    @staticmethod
+    def set_geolocation(chrome_driver):
+        chrome_driver.execute_cdp_cmd(
+            cmd="Browser.grantPermissions",
+            cmd_args={
+                "permissions": ["geolocation"]
+            }
+        )
+        chrome_driver.execute_cdp_cmd(
+            cmd="Emulation.setGeolocationOverride",
+            cmd_args={
+                "latitude": 37.7749,
+                "longitude": 122.4194,
+                "accuracy": 1000
+            }
+        )
+
+    @staticmethod
+    def get_safari_driver():
+        return webdriver.Safari()
 
     @staticmethod
     def get_remote_driver():
@@ -72,7 +184,3 @@ class WebDriverFactory:
         driver.implicitly_wait(10)
         driver.set_window_size(850, 1980)
         return driver
-
-    @staticmethod
-    def get_safari_driver():
-        raise NotImplemented('Getting Safari driver not implemented yet.')
